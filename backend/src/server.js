@@ -6,14 +6,14 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 const http = require('http');
 const socketIo = require('socket.io');
-const logger = require('./src/config/logger');
+const logger = require('./config/logger');
 
 // Import routes
-const authRoutes = require('./src/routes/authRoutes');
-const userRoutes = require('./src/routes/userRoutes');
-const telemetryRoutes = require('./src/routes/telemetryRoutes');
-const cognitiveLoadRoutes = require('./src/routes/cognitiveLoadRoutes');
-const contextPreservationRoutes = require('./src/routes/contextPreservationRoutes');
+const authRoutes = require('./routes/authRoutes');
+const userRoutes = require('./routes/userRoutes');
+const telemetryRoutes = require('./routes/telemetryRoutes');
+const cognitiveLoadRoutes = require('./routes/cognitiveLoadRoutes');
+const contextPreservationRoutes = require('./routes/contextPreservationRoutes');
 
 // Initialize Express and Socket.IO
 const app = express();
@@ -127,7 +127,7 @@ const connectDB = async () => {
 };
 
 // Start server
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3001;
 
 const startServer = async () => {
   await connectDB();
