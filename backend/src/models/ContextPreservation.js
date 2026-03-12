@@ -11,12 +11,12 @@ const contextPreservationSchema = new mongoose.Schema({
   // Context identification
   fromTask: {
     name: String,
-    type: String,
+    type: { type: String },
     startTime: Date
   },
   toTask: {
     name: String,
-    type: String
+    type: { type: String }
   },
   
   // Mental checkpoint data
