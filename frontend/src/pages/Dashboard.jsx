@@ -97,7 +97,7 @@ function Dashboard() {
         </div>
       </div>
 
-      <TaskRecommendations />
+      <TaskRecommendations currentLoad={cognitiveLoad?.cognitive_load} />
     </div>
   )
 }
