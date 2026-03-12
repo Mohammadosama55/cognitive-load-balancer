@@ -3,37 +3,48 @@ import { useSelector } from 'react-redux'
 import api from '../services/api'
 import CognitiveLoadCard from '../components/CognitiveLoadCard'
 import TaskRecommendations from '../components/TaskRecommendations'
+import { useBrowserTelemetry } from '../hooks/useBrowserTelemetry'
 
 function Dashboard() {
   const user = useSelector(state => state.auth.user)
   const [cognitiveLoad, setCognitiveLoad] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [pageLoading, setPageLoading] = useState(true)
+  const [measuring, setMeasuring] = useState(true)
   const [forecast, setForecast] = useState([])
 
+  const browserMetrics = useBrowserTelemetry()
+
   useEffect(() => {
+    if (!browserMetrics) return
+
     const fetchData = async () => {
       try {
-        setLoading(true)
-
-        // Mock telemetry data
-        const mockMetrics = {
-          typing_speed: 45,
-          pause_duration: 1.5,
-          eye_fixation: 0.8,
-          keystroke_variance: 0.12,
-          window_switches: 2,
-          typing_rhythm_score: 0.85
-        }
+        setMeasuring(false)
+        setPageLoading(true)
 
         const response = await api.post('/cognitive-load/predict', {
-          metrics: mockMetrics
+          metrics: {
+            typing_speed: browserMetrics.typing_speed,
+            pause_duration: browserMetrics.pause_duration,
+            eye_fixation: browserMetrics.eye_fixation,
+            keystroke_variance: browserMetrics.keystroke_variance,
+            window_switches: browserMetrics.window_switches,
+            typing_rhythm_score: browserMetrics.typing_rhythm_score,
+          }
         })
 
         setCognitiveLoad(response.data)
 
-        // Get forecast
+        const historicalBase = [
+          browserMetrics.eye_fixation,
+          1 - browserMetrics.keystroke_variance,
+          browserMetrics.typing_rhythm_score,
+          Math.min(1, browserMetrics.typing_speed / 80),
+          Math.max(0, 1 - browserMetrics.pause_duration / 10),
+        ]
+
         const forecastResponse = await api.post('/cognitive-load/forecast', {
-          historicalData: [0.4, 0.5, 0.6, 0.55, 0.65],
+          historicalData: historicalBase,
           hoursAhead: 8
         })
 
@@ -41,15 +52,28 @@ function Dashboard() {
       } catch (error) {
         console.error('Error fetching dashboard data:', error)
       } finally {
-        setLoading(false)
+        setPageLoading(false)
       }
     }
 
     fetchData()
-  }, [])
+  }, [browserMetrics])
 
-  if (loading) {
-    return <div className="text-center py-8">Loading...</div>
+  if (measuring) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 space-y-4">
+        <div className="relative w-16 h-16">
+          <div className="absolute inset-0 rounded-full border-4 border-blue-200"></div>
+          <div className="absolute inset-0 rounded-full border-4 border-blue-600 border-t-transparent animate-spin"></div>
+        </div>
+        <p className="text-lg font-semibold text-gray-700">Measuring your cognitive state...</p>
+        <p className="text-sm text-gray-400">Analysing your session activity — takes about 4 seconds</p>
+      </div>
+    )
+  }
+
+  if (pageLoading) {
+    return <div className="text-center py-8 text-gray-500">Running ML prediction...</div>
   }
 
   return (
