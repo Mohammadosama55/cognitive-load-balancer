@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
@@ -118,9 +119,9 @@ function Register() {
 
           <p className="text-center text-sm text-gray-600">
             Already have an account?{' '}
-            <a href="/login" className="font-medium text-blue-600 hover:text-blue-500">
+            <Link to="/login" className="font-medium text-blue-600 hover:text-blue-500">
               Sign in
-            </a>
+            </Link>
           </p>
         </form>
       </div>

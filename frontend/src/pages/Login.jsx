@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
@@ -94,9 +95,9 @@ function Login() {
 
           <p className="text-center text-sm text-gray-600">
             Don't have an account?{' '}
-            <a href="/register" className="font-medium text-blue-600 hover:text-blue-500">
+            <Link to="/register" className="font-medium text-blue-600 hover:text-blue-500">
               Create one
-            </a>
+            </Link>
           </p>
         </form>
       </div>
