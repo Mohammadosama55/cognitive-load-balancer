@@ -1,0 +1,77 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:5.0
+    container_name: cognitive-load-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin123
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - cognitive-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: cognitive-load-backend
+    ports:
+      - "5000:5000"
+    environment:
+      MONGO_URI: mongodb://admin:admin123@mongodb:27017/cognitive-load?authSource=admin
+      FLASK_SERVICE_URL: http://flask-service:5001
+      NODE_ENV: development
+    depends_on:
+      - mongodb
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    networks:
+      - cognitive-network
+
+  flask-service:
+    build:
+      context: ./flask-microservice
+      dockerfile: Dockerfile
+    container_name: cognitive-load-flask
+    ports:
+      - "5001:5001"
+    environment:
+      FLASK_ENV: development
+      BACKEND_URL: http://backend:5000
+    depends_on:
+      - backend
+    volumes:
+      - ./flask-microservice:/app
+    networks:
+      - cognitive-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: cognitive-load-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      REACT_APP_API_URL: http://localhost:5000
+      REACT_APP_FLASK_URL: http://localhost:5001
+    depends_on:
+      - backend
+      - flask-service
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - cognitive-network
+
+volumes:
+  mongodb_data:
+
+networks:
+  cognitive-network:
+    driver: bridge
