@@ -57,6 +57,14 @@ function CognitiveLoadCard({ load, level, factors }) {
           </div>
         </div>
       )}
+
+      <div className="mt-4 pt-3 border-t border-gray-100 flex items-center gap-2">
+        <span className="inline-flex items-center gap-1 text-xs bg-green-50 text-green-700 border border-green-200 px-2 py-1 rounded-full font-medium">
+          <span className="w-1.5 h-1.5 bg-green-500 rounded-full inline-block"></span>
+          Live Flask ML prediction
+        </span>
+        <span className="text-xs text-gray-400">· simulated telemetry input</span>
+      </div>
     </div>
   )
 }

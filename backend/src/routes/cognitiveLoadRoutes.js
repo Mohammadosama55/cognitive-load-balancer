@@ -129,4 +129,63 @@ router.post('/task-recommendation', authenticate, async (req, res) => {
   }
 });
 
+// Schedule a task
+router.post('/schedule-task', authenticate, async (req, res) => {
+  const { title, taskType, scheduledFor, priority, estimatedDuration, description } = req.body;
+
+  if (!title || !taskType || !scheduledFor) {
+    return res.status(400).json({ error: 'title, taskType, and scheduledFor are required' });
+  }
+
+  try {
+    const task = new Task({
+      user: req.user.id,
+      title,
+      taskType,
+      scheduledFor: new Date(scheduledFor),
+      priority: priority || 'medium',
+      estimatedDuration: estimatedDuration || 60,
+      description: description || '',
+      status: 'pending'
+    });
+
+    await task.save();
+    res.status(201).json({ message: 'Task scheduled', task });
+  } catch (error) {
+    logger.error(`Schedule task error: ${error.message}`);
+    res.status(500).json({ error: 'Failed to schedule task' });
+  }
+});
+
+// Get scheduled tasks for user
+router.get('/scheduled-tasks', authenticate, async (req, res) => {
+  try {
+    const tasks = await Task.find({ user: req.user.id })
+      .sort({ scheduledFor: 1 })
+      .limit(20);
+    res.json({ tasks });
+  } catch (error) {
+    logger.error(`Fetch tasks error: ${error.message}`);
+    res.status(500).json({ error: 'Failed to fetch tasks' });
+  }
+});
+
+// Mark a task as started or completed
+router.patch('/scheduled-tasks/:id', authenticate, async (req, res) => {
+  const { status } = req.body;
+  try {
+    const task = await Task.findOneAndUpdate(
+      { _id: req.params.id, user: req.user.id },
+      { status, ...(status === 'in_progress' ? { startedAt: new Date() } : {}),
+               ...(status === 'completed' ? { completedAt: new Date() } : {}) },
+      { new: true }
+    );
+    if (!task) return res.status(404).json({ error: 'Task not found' });
+    res.json({ task });
+  } catch (error) {
+    logger.error(`Update task error: ${error.message}`);
+    res.status(500).json({ error: 'Failed to update task' });
+  }
+});
+
 module.exports = router;
