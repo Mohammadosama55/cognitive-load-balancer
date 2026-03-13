@@ -76,45 +76,36 @@ class CognitiveLoadPredictor:
     def _normalize_metrics(self, metrics: Dict) -> Dict[str, float]:
         """Normalize raw metrics to 0-1 scale (where 1 = high cognitive load)"""
         normalized = {}
-        
-        # Typing speed (lower speed = higher load)
+
+        # Typing speed: smooth continuous curve
+        # 0 wpm (idle) → 0.75, 40 wpm (normal) → 0.45, 80+ wpm (fast) → 0.1
         if 'typing_speed' in metrics:
-            speed = metrics['typing_speed']
-            if speed < 20:
-                normalized['typing_speed'] = 0.9
-            elif speed < 40:
-                normalized['typing_speed'] = 0.5
-            else:
-                normalized['typing_speed'] = 0.1
-        
-        # Pause duration (longer pauses = higher load)
+            speed = float(metrics['typing_speed'])
+            normalized['typing_speed'] = clip_value(max(0.1, 0.85 - (speed / 95.0)))
+
+        # Pause duration: longer pauses = higher load (continuous)
         if 'pause_duration' in metrics:
-            pause = metrics['pause_duration']
-            normalized['pause_duration'] = clip_value(pause / 10.0)
-        
-        # Eye fixation (lower fixation = higher load)
+            pause = float(metrics['pause_duration'])
+            normalized['pause_duration'] = clip_value(pause / 8.0)
+
+        # Eye fixation: lower fixation = higher load (continuous, inverted)
         if 'eye_fixation' in metrics:
-            normalized['eye_fixation'] = 1.0 - metrics['eye_fixation']
-        
-        # Keystroke variance (higher variance = higher load)
+            normalized['eye_fixation'] = clip_value(1.0 - float(metrics['eye_fixation']))
+
+        # Keystroke variance: higher variance = higher load (continuous)
         if 'keystroke_variance' in metrics:
-            variance = metrics['keystroke_variance']
-            normalized['keystroke_variance'] = clip_value(variance / 0.3)
-        
-        # Window switches (more switches = higher load)
+            variance = float(metrics['keystroke_variance'])
+            normalized['keystroke_variance'] = clip_value(variance / 0.5)
+
+        # Window switches: continuous scale, not bucketed
         if 'window_switches' in metrics:
-            switches = metrics['window_switches']
-            if switches == 0:
-                normalized['window_switches'] = 0.0
-            elif switches < 3:
-                normalized['window_switches'] = 0.3
-            else:
-                normalized['window_switches'] = clip_value(switches / 10.0)
-        
-        # Typing rhythm score (lower = higher load)
+            switches = float(metrics['window_switches'])
+            normalized['window_switches'] = clip_value(switches / 8.0)
+
+        # Typing rhythm: lower regularity = higher load (inverted)
         if 'typing_rhythm_score' in metrics:
-            normalized['typing_rhythm_score'] = 1.0 - metrics['typing_rhythm_score']
-        
+            normalized['typing_rhythm_score'] = clip_value(1.0 - float(metrics['typing_rhythm_score']))
+
         return normalized
     
     def _classify_load(self, score: float) -> str:

@@ -22,15 +22,18 @@ function Dashboard() {
         setMeasuring(false)
         setPageLoading(true)
 
+        const metricsPayload = {
+          typing_speed: browserMetrics.typing_speed,
+          pause_duration: browserMetrics.pause_duration,
+          eye_fixation: browserMetrics.eye_fixation,
+          keystroke_variance: browserMetrics.keystroke_variance,
+          window_switches: browserMetrics.window_switches,
+          typing_rhythm_score: browserMetrics.typing_rhythm_score,
+        }
+        console.log('[CognitiveLB] Session telemetry →', metricsPayload, browserMetrics._debug)
+
         const response = await api.post('/cognitive-load/predict', {
-          metrics: {
-            typing_speed: browserMetrics.typing_speed,
-            pause_duration: browserMetrics.pause_duration,
-            eye_fixation: browserMetrics.eye_fixation,
-            keystroke_variance: browserMetrics.keystroke_variance,
-            window_switches: browserMetrics.window_switches,
-            typing_rhythm_score: browserMetrics.typing_rhythm_score,
-          }
+          metrics: metricsPayload
         })
 
         setCognitiveLoad(response.data)
