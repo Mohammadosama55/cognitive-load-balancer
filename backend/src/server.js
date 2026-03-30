@@ -117,6 +117,8 @@ const connectDB = async () => {
     await mongoose.connect(mongoUri, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 3000,
+      connectTimeoutMS: 3000,
     });
 
     logger.info('MongoDB connected successfully');
@@ -130,12 +132,12 @@ const connectDB = async () => {
 const PORT = process.env.PORT || 3001;
 
 const startServer = async () => {
-  await connectDB();
-
   server.listen(PORT, () => {
     logger.info(`Server running on port ${PORT}`);
     logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
   });
+
+  await connectDB();
 };
 
 startServer().catch((error) => {
