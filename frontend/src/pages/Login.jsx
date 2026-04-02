@@ -1,105 +1,116 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useDispatch } from 'react-redux'
-import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import { setAuth } from '../store/slices/authSlice'
 
 function Login() {
-  const [formData, setFormData] = useState({
-    email: '',
-    password: ''
-  })
+  const [formData, setFormData] = useState({ email: '', password: '' })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const dispatch = useDispatch()
   const navigate = useNavigate()
 
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    })
-  }
+  const handleChange = e => setFormData(f => ({ ...f, [e.target.name]: e.target.value }))
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
     setLoading(true)
-
     try {
-      const response = await api.post('/auth/login', formData)
-      dispatch(setAuth({
-        user: response.data.user,
-        token: response.data.token
-      }))
+      const res = await api.post('/auth/login', formData)
+      dispatch(setAuth({ user: res.data.user, token: res.data.token }))
       navigate('/')
     } catch (err) {
-      setError(err.response?.data?.error || 'Login failed')
+      setError(err.response?.data?.error || 'Authentication failed')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Sign in to your account
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Monitor your cognitive load in real-time
-          </p>
+    <div style={{
+      minHeight:'100vh', background:'#0d1117', display:'flex',
+      alignItems:'center', justifyContent:'center', padding:24,
+    }}>
+      <div style={{ width:'100%', maxWidth:400 }}>
+        <div style={{ textAlign:'center', marginBottom:32 }}>
+          <div style={{
+            width:56, height:56, borderRadius:14, margin:'0 auto 16px',
+            background:'linear-gradient(135deg,#58a6ff 0%,#3fb950 100%)',
+            display:'flex', alignItems:'center', justifyContent:'center', fontSize:28,
+          }}>🧠</div>
+          <h1 style={{ fontSize:22, fontWeight:700, color:'#e6edf3', margin:'0 0 6px' }}>CognitiveLB</h1>
+          <p style={{ fontSize:13, color:'#8b949e', margin:0 }}>Developer cognitive load monitoring</p>
         </div>
 
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+        <div style={{
+          background:'#161b22', border:'1px solid #30363d', borderRadius:10, padding:24,
+        }}>
+          <div style={{ fontSize:11, fontFamily:'monospace', color:'#8b949e', marginBottom:20 }}>
+            <span style={{ color:'#58a6ff' }}>$ </span>authenticate --mode developer
+          </div>
+
           {error && (
-            <div className="rounded-md bg-red-50 p-4">
-              <div className="text-sm text-red-800">{error}</div>
+            <div style={{
+              background:'rgba(248,81,73,0.1)', border:'1px solid rgba(248,81,73,0.4)',
+              borderRadius:6, padding:'10px 14px', marginBottom:16,
+              fontSize:13, color:'#f85149',
+            }}>
+              {error}
             </div>
           )}
 
-          <div className="rounded-md shadow-sm -space-y-px">
+          <form onSubmit={handleSubmit} style={{ display:'flex', flexDirection:'column', gap:12 }}>
             <div>
+              <label style={{ fontSize:12, color:'#8b949e', display:'block', marginBottom:6, fontFamily:'monospace' }}>
+                email
+              </label>
               <input
-                type="email"
-                name="email"
-                placeholder="Email address"
-                value={formData.email}
-                onChange={handleChange}
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                required
+                type="email" name="email" placeholder="dev@company.com"
+                value={formData.email} onChange={handleChange}
+                autoComplete="email" required
               />
             </div>
             <div>
+              <label style={{ fontSize:12, color:'#8b949e', display:'block', marginBottom:6, fontFamily:'monospace' }}>
+                password
+              </label>
               <input
-                type="password"
-                name="password"
-                placeholder="Password"
-                value={formData.password}
-                onChange={handleChange}
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                required
+                type="password" name="password" placeholder="••••••••"
+                value={formData.password} onChange={handleChange}
+                autoComplete="current-password" required
               />
             </div>
-          </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-          >
-            {loading ? 'Signing in...' : 'Sign in'}
-          </button>
+            <button type="submit" disabled={loading} style={{
+              marginTop:8, padding:'10px 16px', borderRadius:6,
+              background: loading ? '#21262d' : '#1f6feb',
+              border:'1px solid rgba(88,166,255,0.3)',
+              color: loading ? '#8b949e' : '#e6edf3',
+              fontSize:14, fontWeight:600, cursor: loading ? 'not-allowed' : 'pointer',
+              transition:'all 0.15s', display:'flex', alignItems:'center', justifyContent:'center', gap:8,
+            }}>
+              {loading ? (
+                <>
+                  <span style={{
+                    width:14, height:14, border:'2px solid #8b949e',
+                    borderTopColor:'transparent', borderRadius:'50%',
+                    display:'inline-block', animation:'spin 0.8s linear infinite',
+                  }}/>
+                  Authenticating...
+                </>
+              ) : 'Sign in →'}
+            </button>
+          </form>
 
-          <p className="text-center text-sm text-gray-600">
-            Don't have an account?{' '}
-            <Link to="/register" className="font-medium text-blue-600 hover:text-blue-500">
+          <p style={{ marginTop:20, textAlign:'center', fontSize:13, color:'#8b949e' }}>
+            No account?{' '}
+            <Link to="/register" style={{ color:'#58a6ff', textDecoration:'none', fontWeight:500 }}>
               Create one
             </Link>
           </p>
-        </form>
+        </div>
       </div>
     </div>
   )

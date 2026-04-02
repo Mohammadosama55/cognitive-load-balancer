@@ -8,10 +8,23 @@ const config = require('../config/constants');
 const logger = require('../config/logger');
 const { predict: mlPredict } = require('../predictor');
 
+// Map any load_level string to valid MongoDB enum values
+const LEVEL_MAP = { very_low:'very_low', low:'low', medium:'medium', moderate:'medium', high:'high', very_high:'very_high' };
+function sanitiseLevel(level) { return LEVEL_MAP[level] || 'medium'; }
+
+// Convert factors (object or array) to [String] for DB storage
+function factorsToStrings(factors) {
+  if (!factors) return [];
+  if (Array.isArray(factors)) return factors.map(String);
+  if (typeof factors === 'object') {
+    return Object.entries(factors).map(([k, v]) => `${k}:${typeof v === 'number' ? v.toFixed(2) : v}`);
+  }
+  return [String(factors)];
+}
+
 // Fallback: use trained ML model for local predictions
 function computeLoadLocally(metrics = {}) {
   const data = mlPredict(metrics);
-  // Normalise field names to match what the routes expect
   return {
     cognitive_load: data.cognitive_load,
     load_level:     data.load_level,
@@ -88,8 +101,8 @@ router.post('/predict', authenticate, async (req, res) => {
     const cognitiveLoad = new CognitiveLoad({
       user: req.user.id,
       loadScore: data.cognitive_load,
-      loadLevel: data.load_level,
-      factors: data.factors,
+      loadLevel: sanitiseLevel(data.load_level),
+      factors: factorsToStrings(data.factors),
       confidence: data.confidence,
       recommendation: { action: data.recommendation }
     });
@@ -115,8 +128,8 @@ router.post('/predict', authenticate, async (req, res) => {
         const cognitiveLoad = new CognitiveLoad({
           user: req.user.id,
           loadScore: data.cognitive_load,
-          loadLevel: data.load_level,
-          factors: data.factors,
+          loadLevel: sanitiseLevel(data.load_level),
+          factors: factorsToStrings(data.factors),
           confidence: data.confidence,
           recommendation: { action: data.recommendation }
         });

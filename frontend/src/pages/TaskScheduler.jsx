@@ -2,63 +2,77 @@ import { useState, useEffect, useCallback } from 'react'
 import api from '../services/api'
 
 const TASK_TYPES = [
-  { value: 'coding', label: 'Coding', emoji: '💻', difficulty: 'high' },
-  { value: 'review', label: 'Code Review', emoji: '🔍', difficulty: 'medium' },
-  { value: 'debugging', label: 'Debugging', emoji: '🐛', difficulty: 'high' },
-  { value: 'testing', label: 'Testing', emoji: '✅', difficulty: 'medium' },
-  { value: 'documentation', label: 'Documentation', emoji: '📝', difficulty: 'low' },
-  { value: 'planning', label: 'Planning', emoji: '🗂️', difficulty: 'medium' },
-  { value: 'meeting', label: 'Meeting', emoji: '🤝', difficulty: 'low' },
+  { value:'coding',        label:'Coding',        icon:'{ }', difficulty:'high'   },
+  { value:'review',        label:'Code Review',   icon:'⊡',   difficulty:'medium' },
+  { value:'debugging',     label:'Debugging',     icon:'⚙',   difficulty:'high'   },
+  { value:'testing',       label:'Testing',       icon:'✓',   difficulty:'medium' },
+  { value:'documentation', label:'Docs',          icon:'≡',   difficulty:'low'    },
+  { value:'planning',      label:'Planning',      icon:'⊞',   difficulty:'medium' },
+  { value:'meeting',       label:'Meeting',       icon:'⇄',   difficulty:'low'    },
 ]
 
-const PRIORITY_COLORS = {
-  low: 'bg-green-100 text-green-800',
-  medium: 'bg-yellow-100 text-yellow-800',
-  high: 'bg-red-100 text-red-800',
-  critical: 'bg-red-200 text-red-900',
+const PRIORITY_STYLES = {
+  low:      { color:'#3fb950', bg:'rgba(63,185,80,0.1)',   border:'rgba(63,185,80,0.3)'   },
+  medium:   { color:'#d29922', bg:'rgba(210,153,34,0.1)',  border:'rgba(210,153,34,0.3)'  },
+  high:     { color:'#f0883e', bg:'rgba(240,136,62,0.1)',  border:'rgba(240,136,62,0.3)'  },
+  critical: { color:'#f85149', bg:'rgba(248,81,73,0.1)',   border:'rgba(248,81,73,0.3)'   },
 }
 
-const STATUS_COLORS = {
-  pending: 'bg-gray-100 text-gray-700',
-  in_progress: 'bg-blue-100 text-blue-700',
-  completed: 'bg-green-100 text-green-700',
-  postponed: 'bg-yellow-100 text-yellow-700',
+const STATUS_STYLES = {
+  pending:     { color:'#8b949e', bg:'rgba(139,148,158,0.1)', label:'pending'      },
+  in_progress: { color:'#58a6ff', bg:'rgba(88,166,255,0.1)',  label:'in progress'  },
+  completed:   { color:'#3fb950', bg:'rgba(63,185,80,0.1)',   label:'completed'    },
+  postponed:   { color:'#d29922', bg:'rgba(210,153,34,0.1)',  label:'postponed'    },
 }
 
 function timeLabel(iso) {
   if (!iso) return '—'
   const d = new Date(iso)
-  return d.toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+  return d.toLocaleString(undefined, { weekday:'short', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' })
 }
 
 function smartSlots() {
   const now = new Date()
-  const slots = []
   const offsets = [
-    { label: 'Today 9 AM – Low load window', hoursFromNow: Math.max(1, 9 - now.getHours()), note: 'Peak focus, low cognitive load' },
-    { label: 'Today 2 PM – Post-lunch slot', hoursFromNow: Math.max(2, 14 - now.getHours()), note: 'Good for light or creative tasks' },
-    { label: 'Tomorrow 9 AM – Fresh start', hoursFromNow: Math.max(3, 24 + 9 - now.getHours()), note: 'High energy period' },
+    { label:'Peak focus window',    hoursFromNow: Math.max(1, 9 - now.getHours()),             note:'Low load · morning' },
+    { label:'Post-lunch window',    hoursFromNow: Math.max(2, 14 - now.getHours()),            note:'Light tasks preferred' },
+    { label:'Tomorrow morning',     hoursFromNow: Math.max(3, 24 + 9 - now.getHours()),        note:'Fresh start' },
   ]
-  for (const o of offsets) {
+  return offsets.map(o => {
     const d = new Date(now)
     d.setHours(d.getHours() + o.hoursFromNow, 0, 0, 0)
-    slots.push({ ...o, iso: d.toISOString(), display: d.toLocaleString(undefined, { weekday: 'short', hour: '2-digit', minute: '2-digit' }) })
-  }
-  return slots
+    return { ...o, iso: d.toISOString(), display: d.toLocaleString(undefined, { weekday:'short', hour:'2-digit', minute:'2-digit' }) }
+  })
 }
 
 const SMART_SLOTS = smartSlots()
+
+const Field = ({ label, children }) => (
+  <div>
+    <label style={{ fontSize:12, color:'#8b949e', display:'block', marginBottom:6, fontFamily:'monospace' }}>{label}</label>
+    {children}
+  </div>
+)
+
+const Card = ({ children, style }) => (
+  <div style={{ background:'#161b22', border:'1px solid #30363d', borderRadius:10, padding:20, ...style }}>
+    {children}
+  </div>
+)
+
+const SectionTitle = ({ children, sub }) => (
+  <div style={{ marginBottom:14 }}>
+    <div style={{ fontSize:13, fontWeight:600, color:'#8b949e', textTransform:'uppercase', letterSpacing:1 }}>{children}</div>
+    {sub && <div style={{ fontSize:12, color:'#484f58', marginTop:3 }}>{sub}</div>}
+  </div>
+)
 
 export default function TaskScheduler() {
   const [tasks, setTasks] = useState([])
   const [loadingTasks, setLoadingTasks] = useState(true)
   const [form, setForm] = useState({
-    title: '',
-    taskType: 'coding',
-    scheduledFor: SMART_SLOTS[0].iso,
-    priority: 'medium',
-    estimatedDuration: 60,
-    description: ''
+    title:'', taskType:'coding', scheduledFor: SMART_SLOTS[0].iso,
+    priority:'medium', estimatedDuration:60, description:'',
   })
   const [submitting, setSubmitting] = useState(false)
   const [successMsg, setSuccessMsg] = useState('')
@@ -70,11 +84,8 @@ export default function TaskScheduler() {
       setLoadingTasks(true)
       const res = await api.get('/cognitive-load/scheduled-tasks')
       setTasks(res.data.tasks || [])
-    } catch (e) {
-      console.error('Failed to fetch tasks', e)
-    } finally {
-      setLoadingTasks(false)
-    }
+    } catch {}
+    finally { setLoadingTasks(false) }
   }, [])
 
   useEffect(() => { fetchTasks() }, [fetchTasks])
@@ -86,8 +97,8 @@ export default function TaskScheduler() {
     setSuccessMsg('')
     try {
       await api.post('/cognitive-load/schedule-task', form)
-      setSuccessMsg(`"${form.title}" scheduled successfully!`)
-      setForm(f => ({ ...f, title: '', description: '' }))
+      setSuccessMsg(`"${form.title}" scheduled`)
+      setForm(f => ({ ...f, title:'', description:'' }))
       await fetchTasks()
       setTimeout(() => setSuccessMsg(''), 4000)
     } catch (err) {
@@ -102,213 +113,186 @@ export default function TaskScheduler() {
     try {
       const res = await api.patch(`/cognitive-load/scheduled-tasks/${taskId}`, { status })
       setTasks(prev => prev.map(t => t._id === taskId ? res.data.task : t))
-    } catch (e) {
-      console.error('Failed to update task', e)
-    } finally {
-      setUpdatingId(null)
-    }
+    } catch {}
+    finally { setUpdatingId(null) }
   }
 
   const typeInfo = TASK_TYPES.find(t => t.value === form.taskType) || TASK_TYPES[0]
 
   return (
-    <div className="space-y-8">
+    <div style={{ display:'flex', flexDirection:'column', gap:20 }}>
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Task Scheduler</h1>
-        <p className="mt-2 text-gray-600">
-          Schedule tasks around your cognitive load forecast
-        </p>
+        <h1 style={{ fontSize:20, fontWeight:700, color:'#e6edf3', margin:'0 0 4px' }}>Task Scheduler</h1>
+        <p style={{ fontSize:13, color:'#8b949e', margin:0 }}>Schedule work around your cognitive load forecast</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Smart Time Slots */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-1">Smart Recommendations</h3>
-          <p className="text-sm text-gray-500 mb-4">Optimal windows based on your cognitive load pattern</p>
-          <div className="space-y-3">
-            {SMART_SLOTS.map((slot, idx) => (
-              <button
-                key={idx}
-                onClick={() => setForm(f => ({ ...f, scheduledFor: slot.iso }))}
-                className={`w-full flex items-center justify-between p-4 rounded-lg border-2 transition text-left ${
-                  form.scheduledFor === slot.iso
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-gray-200 bg-gray-50 hover:border-blue-300 hover:bg-blue-50'
-                }`}
-              >
-                <div>
-                  <p className="font-medium text-gray-900">{slot.display}</p>
-                  <p className="text-sm text-gray-500">{slot.note}</p>
-                </div>
-                {form.scheduledFor === slot.iso && (
-                  <span className="text-blue-600 font-bold text-lg">✓</span>
-                )}
-              </button>
-            ))}
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
+        <Card>
+          <SectionTitle sub="Optimal windows based on load forecast">Smart Slots</SectionTitle>
+          <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+            {SMART_SLOTS.map((slot, idx) => {
+              const active = form.scheduledFor === slot.iso
+              return (
+                <button key={idx} onClick={() => setForm(f => ({...f, scheduledFor: slot.iso}))} style={{
+                  display:'flex', alignItems:'center', justifyContent:'space-between',
+                  padding:'12px 14px', borderRadius:7, border:`1px solid ${active ? '#58a6ff55' : '#30363d'}`,
+                  background: active ? 'rgba(31,111,235,0.12)' : '#1c2128',
+                  cursor:'pointer', textAlign:'left', transition:'all 0.15s',
+                }}>
+                  <div>
+                    <div style={{ fontSize:13, fontWeight:600, color: active ? '#58a6ff' : '#e6edf3', fontFamily:'monospace' }}>
+                      {slot.display}
+                    </div>
+                    <div style={{ fontSize:11, color:'#8b949e', marginTop:2 }}>{slot.note}</div>
+                    <div style={{ fontSize:11, color: active ? '#58a6ff' : '#484f58', marginTop:2 }}>{slot.label}</div>
+                  </div>
+                  {active && <span style={{ color:'#58a6ff', fontSize:16 }}>✓</span>}
+                </button>
+              )
+            })}
           </div>
-        </div>
+        </Card>
 
-        {/* Schedule Form */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Schedule a Task</h3>
+        <Card>
+          <SectionTitle>Schedule Task</SectionTitle>
 
           {successMsg && (
-            <div className="mb-4 px-4 py-2 bg-green-50 border border-green-200 text-green-800 rounded-lg text-sm font-medium">
-              ✓ {successMsg}
-            </div>
+            <div style={{
+              marginBottom:14, padding:'8px 12px', borderRadius:6, fontSize:12,
+              background:'rgba(63,185,80,0.1)', border:'1px solid rgba(63,185,80,0.3)', color:'#3fb950',
+            }}>✓ {successMsg}</div>
           )}
           {errorMsg && (
-            <div className="mb-4 px-4 py-2 bg-red-50 border border-red-200 text-red-800 rounded-lg text-sm">
-              {errorMsg}
-            </div>
+            <div style={{
+              marginBottom:14, padding:'8px 12px', borderRadius:6, fontSize:12,
+              background:'rgba(248,81,73,0.1)', border:'1px solid rgba(248,81,73,0.3)', color:'#f85149',
+            }}>{errorMsg}</div>
           )}
 
-          <form onSubmit={handleSchedule} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Task Name</label>
-              <input
-                type="text"
-                required
-                placeholder="e.g. Review PR #42"
-                value={form.title}
-                onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Task Type</label>
-              <select
-                value={form.taskType}
-                onChange={e => setForm(f => ({ ...f, taskType: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-              >
-                {TASK_TYPES.map(t => (
-                  <option key={t.value} value={t.value}>{t.emoji} {t.label}</option>
-                ))}
+          <form onSubmit={handleSchedule} style={{ display:'flex', flexDirection:'column', gap:12 }}>
+            <Field label="task name">
+              <input type="text" required placeholder="e.g. Review PR #42"
+                value={form.title} onChange={e => setForm(f => ({...f, title:e.target.value}))}/>
+            </Field>
+            <Field label="task type">
+              <select value={form.taskType} onChange={e => setForm(f => ({...f, taskType:e.target.value}))}>
+                {TASK_TYPES.map(t => <option key={t.value} value={t.value}>{t.icon}  {t.label}</option>)}
               </select>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
-                <select
-                  value={form.priority}
-                  onChange={e => setForm(f => ({ ...f, priority: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                >
-                  <option value="low">Low</option>
-                  <option value="medium">Medium</option>
-                  <option value="high">High</option>
-                  <option value="critical">Critical</option>
+            </Field>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+              <Field label="priority">
+                <select value={form.priority} onChange={e => setForm(f => ({...f, priority:e.target.value}))}>
+                  <option value="low">low</option>
+                  <option value="medium">medium</option>
+                  <option value="high">high</option>
+                  <option value="critical">critical</option>
                 </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Duration (min)</label>
-                <input
-                  type="number"
-                  min="15"
-                  max="480"
-                  value={form.estimatedDuration}
-                  onChange={e => setForm(f => ({ ...f, estimatedDuration: parseInt(e.target.value) }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                />
-              </div>
+              </Field>
+              <Field label="duration (min)">
+                <input type="number" min="15" max="480" value={form.estimatedDuration}
+                  onChange={e => setForm(f => ({...f, estimatedDuration:parseInt(e.target.value)}))}/>
+              </Field>
             </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Scheduled Time</label>
-              <input
-                type="datetime-local"
-                value={form.scheduledFor.slice(0, 16)}
-                onChange={e => setForm(f => ({ ...f, scheduledFor: new Date(e.target.value).toISOString() }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Notes (optional)</label>
-              <textarea
-                rows={2}
-                placeholder="Any context or notes..."
-                value={form.description}
-                onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm resize-none"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={submitting}
-              className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition disabled:opacity-50 text-sm"
-            >
-              {submitting ? 'Scheduling...' : `Schedule ${typeInfo.emoji} ${typeInfo.label}`}
+            <Field label="scheduled time">
+              <input type="datetime-local" value={form.scheduledFor.slice(0,16)}
+                onChange={e => setForm(f => ({...f, scheduledFor: new Date(e.target.value).toISOString()}))}/>
+            </Field>
+            <Field label="notes (optional)">
+              <textarea rows={2} placeholder="Context, blockers, dependencies..."
+                value={form.description} onChange={e => setForm(f => ({...f, description:e.target.value}))}
+                style={{ resize:'none' }}/>
+            </Field>
+            <button type="submit" disabled={submitting} style={{
+              padding:'9px 16px', borderRadius:6, fontSize:13, fontWeight:600,
+              background: submitting ? '#21262d' : '#1f6feb',
+              border:'1px solid rgba(88,166,255,0.3)',
+              color: submitting ? '#8b949e' : '#e6edf3',
+              cursor: submitting ? 'not-allowed' : 'pointer', transition:'all 0.15s',
+            }}>
+              {submitting ? 'Scheduling...' : `Schedule ${typeInfo.icon} ${typeInfo.label} →`}
             </button>
           </form>
-        </div>
+        </Card>
       </div>
 
-      {/* Scheduled Tasks List */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">Your Scheduled Tasks</h3>
-          <button onClick={fetchTasks} className="text-sm text-blue-600 hover:underline">Refresh</button>
+      <Card>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
+          <SectionTitle>{`Scheduled Tasks (${tasks.length})`}</SectionTitle>
+          <button onClick={fetchTasks} style={{
+            fontSize:12, color:'#58a6ff', background:'none', border:'none', cursor:'pointer', padding:0,
+          }}>↻ Refresh</button>
         </div>
 
         {loadingTasks ? (
-          <div className="space-y-3">
-            {[1, 2, 3].map(i => <div key={i} className="h-16 bg-gray-100 rounded-lg animate-pulse" />)}
+          <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+            {[1,2,3].map(i => (
+              <div key={i} style={{ height:60, borderRadius:7, background:'#1c2128' }}/>
+            ))}
           </div>
         ) : tasks.length === 0 ? (
-          <div className="text-center py-10 text-gray-400">
-            <p className="text-4xl mb-2">📅</p>
-            <p>No tasks scheduled yet. Use the form above to add one.</p>
+          <div style={{ textAlign:'center', padding:'36px 24px', color:'#8b949e' }}>
+            <div style={{ fontSize:28, marginBottom:10 }}>◷</div>
+            <div style={{ fontSize:13 }}>No tasks scheduled yet — use the form above</div>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
             {tasks.map(task => {
-              const typeEmoji = TASK_TYPES.find(t => t.value === task.taskType)?.emoji || '📋'
+              const typeEmoji = TASK_TYPES.find(t => t.value === task.taskType)?.icon || '⊞'
+              const pStyle = PRIORITY_STYLES[task.priority] || PRIORITY_STYLES.medium
+              const sStyle = STATUS_STYLES[task.status] || STATUS_STYLES.pending
               return (
-                <div key={task._id} className="flex items-center justify-between p-4 rounded-lg border border-gray-200 hover:border-gray-300 transition">
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <span className="text-xl shrink-0">{typeEmoji}</span>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="font-medium text-gray-900 truncate">{task.title}</p>
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${PRIORITY_COLORS[task.priority] || ''}`}>
-                          {task.priority}
+                <div key={task._id} style={{
+                  display:'flex', alignItems:'center', justifyContent:'space-between',
+                  padding:'12px 14px', borderRadius:7,
+                  border:'1px solid #30363d', background:'#1c2128',
+                  gap:12,
+                }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:12, flex:1, minWidth:0 }}>
+                    <span style={{ fontFamily:'monospace', color:'#58a6ff', fontSize:16, flexShrink:0 }}>{typeEmoji}</span>
+                    <div style={{ minWidth:0 }}>
+                      <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
+                        <span style={{ fontSize:13, fontWeight:600, color:'#e6edf3', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                          {task.title}
                         </span>
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[task.status] || ''}`}>
-                          {task.status.replace('_', ' ')}
-                        </span>
+                        <span style={{
+                          fontSize:10, padding:'2px 8px', borderRadius:20, fontWeight:600,
+                          color:pStyle.color, background:pStyle.bg, border:`1px solid ${pStyle.border}`,
+                        }}>{task.priority}</span>
+                        <span style={{
+                          fontSize:10, padding:'2px 8px', borderRadius:20,
+                          color:sStyle.color, background:sStyle.bg,
+                        }}>{sStyle.label}</span>
                       </div>
-                      <p className="text-sm text-gray-500">
+                      <div style={{ fontSize:11, color:'#8b949e', fontFamily:'monospace', marginTop:3 }}>
                         {timeLabel(task.scheduledFor)} · {task.estimatedDuration}min
-                      </p>
+                      </div>
                     </div>
                   </div>
-
-                  <div className="flex gap-2 shrink-0 ml-4">
+                  <div style={{ display:'flex', gap:6, flexShrink:0 }}>
                     {task.status === 'pending' && (
-                      <button
-                        onClick={() => updateStatus(task._id, 'in_progress')}
+                      <button onClick={() => updateStatus(task._id, 'in_progress')}
                         disabled={updatingId === task._id}
-                        className="px-3 py-1 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition"
-                      >
+                        style={{
+                          padding:'5px 12px', fontSize:11, fontWeight:600,
+                          background:'rgba(88,166,255,0.12)', border:'1px solid rgba(88,166,255,0.3)',
+                          color:'#58a6ff', borderRadius:6, cursor:'pointer',
+                        }}>
                         {updatingId === task._id ? '...' : 'Start'}
                       </button>
                     )}
                     {task.status === 'in_progress' && (
-                      <button
-                        onClick={() => updateStatus(task._id, 'completed')}
+                      <button onClick={() => updateStatus(task._id, 'completed')}
                         disabled={updatingId === task._id}
-                        className="px-3 py-1 text-xs bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition"
-                      >
+                        style={{
+                          padding:'5px 12px', fontSize:11, fontWeight:600,
+                          background:'rgba(63,185,80,0.12)', border:'1px solid rgba(63,185,80,0.3)',
+                          color:'#3fb950', borderRadius:6, cursor:'pointer',
+                        }}>
                         {updatingId === task._id ? '...' : 'Complete'}
                       </button>
                     )}
                     {task.status === 'completed' && (
-                      <span className="px-3 py-1 text-xs bg-green-100 text-green-700 rounded-lg">✓ Done</span>
+                      <span style={{ fontSize:11, color:'#3fb950', padding:'5px 12px' }}>✓ Done</span>
                     )}
                   </div>
                 </div>
@@ -316,7 +300,7 @@ export default function TaskScheduler() {
             })}
           </div>
         )}
-      </div>
+      </Card>
     </div>
   )
 }
