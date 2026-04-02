@@ -111,20 +111,30 @@ app.io = io;
 
 // Database connection
 const connectDB = async () => {
+  const mongoUri = process.env.MONGO_URI || 'mongodb://localhost:27017/cognitive-load';
+
   try {
-    const mongoUri = process.env.MONGO_URI || 'mongodb://admin:admin123@localhost:27017/cognitive-load?authSource=admin';
-    
     await mongoose.connect(mongoUri, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
       serverSelectionTimeoutMS: 3000,
       connectTimeoutMS: 3000,
     });
-
     logger.info('MongoDB connected successfully');
   } catch (error) {
-    logger.error(`MongoDB connection error: ${error.message}`);
-    // Don't exit process - allow app to start in offline mode
+    logger.warn(`MongoDB not available (${error.message}). Starting in-memory MongoDB...`);
+    try {
+      const { MongoMemoryServer } = require('mongodb-memory-server');
+      const mongod = await MongoMemoryServer.create();
+      const memUri = mongod.getUri();
+      await mongoose.connect(memUri, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+      });
+      logger.info('In-memory MongoDB connected successfully (data will not persist between restarts)');
+    } catch (memErr) {
+      logger.error(`Failed to start in-memory MongoDB: ${memErr.message}`);
+    }
   }
 };
 

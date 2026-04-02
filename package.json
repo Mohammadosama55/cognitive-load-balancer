@@ -20,7 +20,8 @@
     "docker:down": "docker-compose down"
   },
   "devDependencies": {
-    "concurrently": "^8.2.0"
+    "concurrently": "^8.2.0",
+    "mongodb-memory-server": "^11.0.1"
   },
   "keywords": [
     "cognitive-load",
