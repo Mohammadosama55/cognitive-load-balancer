@@ -7,12 +7,24 @@ const CognitiveLoad = require('../models/CognitiveLoad');
 const config = require('../config/constants');
 const logger = require('../config/logger');
 
+// Local fallback: compute load score from telemetry metrics
+function computeLoadFromTelemetry({ typingSpeed = 40, pauseDuration = 2, keystrokeVariance = 0.3, mouseMovementSpeed = 50, windowSwitches = 0 } = {}) {
+  const speedScore = Math.max(0, Math.min(1, (80 - typingSpeed) / 80));
+  const pauseScore = Math.min(1, pauseDuration / 10);
+  const varianceScore = Math.min(1, keystrokeVariance);
+  const switchScore = Math.min(1, windowSwitches / 5);
+  const aggregate_load_score = Math.round((speedScore * 0.25 + pauseScore * 0.3 + varianceScore * 0.25 + switchScore * 0.2) * 100) / 100;
+  const load_level = aggregate_load_score < 0.33 ? 'low' : aggregate_load_score < 0.66 ? 'moderate' : 'high';
+  return { aggregate_load_score, load_level };
+}
+
 // Record telemetry data
 router.post('/record', authenticate, async (req, res) => {
   const { typingSpeed, pauseDuration, keystrokeVariance, mouseMovementSpeed, windowSwitches, sessionId, ideName, projectName } = req.body;
 
+  let analysis;
+
   try {
-    // Send to Flask microservice for analysis
     const flaskResponse = await axios.post(`${config.flaskServiceUrl}/api/telemetry/analyze`, {
       user_id: req.user.id,
       telemetry_data: {
@@ -23,10 +35,13 @@ router.post('/record', authenticate, async (req, res) => {
         window_switches: windowSwitches
       }
     });
+    analysis = flaskResponse.data.data.analysis;
+  } catch (flaskError) {
+    logger.warn('Flask service unavailable, using local telemetry analysis');
+    analysis = computeLoadFromTelemetry({ typingSpeed, pauseDuration, keystrokeVariance, mouseMovementSpeed, windowSwitches });
+  }
 
-    const analysis = flaskResponse.data.data.analysis;
-
-    // Save telemetry record
+  try {
     const telemetry = new Telemetry({
       user: req.user.id,
       typingSpeed,
