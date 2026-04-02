@@ -38,6 +38,37 @@ Multi-service monorepo:
 - Backend binds to `0.0.0.0` (required for Replit networking)
 - Frontend configured with `allowedHosts: true` and `host: '0.0.0.0'` for Replit proxy
 
+## VS Code Extension
+
+Located in `vscode-extension/`. Tracks developer behavior inside VS Code and shows real-time cognitive load in the status bar.
+
+### Install the extension
+```bash
+cd vscode-extension
+npm install
+npm run package
+code --install-extension cognitive-load-balancer-1.0.0.vsix
+```
+
+### What it tracks (behavior only, no code content)
+- Typing speed and rhythm (keystrokes per minute)
+- Pause duration between typing bursts
+- Keystroke variance (sign of hesitation/confusion)
+- File/tab switching frequency
+- Window focus changes
+
+### Status bar display
+- `● 32% Low` — in flow, great for deep work
+- `⚠ 58% Moderate` — decent focus
+- `✖ 81% High` — switch to lighter tasks
+
+### Extension settings
+- `cognitiveLB.serverUrl` — backend URL (default: `http://localhost:3001`)
+- `cognitiveLB.dashboardUrl` — dashboard URL (default: `http://localhost:5000`)
+- `cognitiveLB.telemetryInterval` — seconds between readings (default: 30)
+- `cognitiveLB.showNotifications` — popup alerts when load is high (default: true)
+- `cognitiveLB.autoTrack` — start tracking on VS Code open (default: true)
+
 ## API Endpoints
 
 - `GET /api/health` - Health check

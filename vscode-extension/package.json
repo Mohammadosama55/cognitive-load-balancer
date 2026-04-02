@@ -1,0 +1,97 @@
+{
+  "name": "cognitive-load-balancer",
+  "displayName": "Cognitive Load Balancer",
+  "description": "Real-time cognitive load monitoring for developers. Tracks your focus level and recommends optimal task-switching moments.",
+  "version": "1.0.0",
+  "publisher": "cognitive-load-balancer",
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Other",
+    "Visualization"
+  ],
+  "keywords": [
+    "cognitive load",
+    "developer productivity",
+    "focus",
+    "fatigue",
+    "telemetry"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./src/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "cognitiveLB.login",
+        "title": "Cognitive Load: Sign In"
+      },
+      {
+        "command": "cognitiveLB.logout",
+        "title": "Cognitive Load: Sign Out"
+      },
+      {
+        "command": "cognitiveLB.toggleTracking",
+        "title": "Cognitive Load: Toggle Tracking"
+      },
+      {
+        "command": "cognitiveLB.showDashboard",
+        "title": "Cognitive Load: Open Dashboard"
+      },
+      {
+        "command": "cognitiveLB.showStatus",
+        "title": "Cognitive Load: Show Current Status"
+      }
+    ],
+    "configuration": {
+      "title": "Cognitive Load Balancer",
+      "properties": {
+        "cognitiveLB.serverUrl": {
+          "type": "string",
+          "default": "http://localhost:3001",
+          "description": "URL of your Cognitive Load Balancer backend server"
+        },
+        "cognitiveLB.dashboardUrl": {
+          "type": "string",
+          "default": "http://localhost:5000",
+          "description": "URL of your Cognitive Load Balancer dashboard"
+        },
+        "cognitiveLB.telemetryInterval": {
+          "type": "number",
+          "default": 30,
+          "minimum": 10,
+          "maximum": 300,
+          "description": "How often (in seconds) to send telemetry and update your load score"
+        },
+        "cognitiveLB.showNotifications": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show notification popups when cognitive load is high"
+        },
+        "cognitiveLB.autoTrack": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically start tracking when VS Code opens"
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "axios": "^1.5.0"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.74.0",
+    "vsce": "^2.15.0"
+  },
+  "scripts": {
+    "package": "vsce package",
+    "install-ext": "code --install-extension cognitive-load-balancer-1.0.0.vsix"
+  },
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "license": "MIT"
+}
