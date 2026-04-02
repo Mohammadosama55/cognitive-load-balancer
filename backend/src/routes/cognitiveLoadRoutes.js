@@ -6,49 +6,18 @@ const CognitiveLoad = require('../models/CognitiveLoad');
 const Task = require('../models/Task');
 const config = require('../config/constants');
 const logger = require('../config/logger');
+const { predict: mlPredict } = require('../predictor');
 
-// Fallback: compute cognitive load from metrics locally
+// Fallback: use trained ML model for local predictions
 function computeLoadLocally(metrics = {}) {
-  const {
-    typing_speed = 40,
-    pause_duration = 2,
-    eye_fixation = 0.5,
-    keystroke_variance = 0.3,
-    window_switches = 0
-  } = metrics;
-
-  const speedScore = Math.max(0, Math.min(1, (80 - typing_speed) / 80));
-  const pauseScore = Math.min(1, pause_duration / 10);
-  const fixationScore = eye_fixation;
-  const varianceScore = Math.min(1, keystroke_variance);
-  const switchScore = Math.min(1, window_switches / 5);
-
-  const load = (speedScore * 0.2 + pauseScore * 0.25 + fixationScore * 0.2 + varianceScore * 0.2 + switchScore * 0.15);
-  const cognitive_load = Math.round(load * 100) / 100;
-
-  let load_level;
-  if (cognitive_load < 0.33) load_level = 'low';
-  else if (cognitive_load < 0.66) load_level = 'moderate';
-  else load_level = 'high';
-
-  const recommendations = {
-    low: 'continue',
-    moderate: 'take_short_break',
-    high: 'take_break'
-  };
-
+  const data = mlPredict(metrics);
+  // Normalise field names to match what the routes expect
   return {
-    cognitive_load,
-    load_level,
-    confidence: 0.75,
-    factors: {
-      typing_pattern: speedScore,
-      pause_analysis: pauseScore,
-      eye_movement: fixationScore,
-      keystroke_dynamics: varianceScore,
-      context_switching: switchScore
-    },
-    recommendation: recommendations[load_level]
+    cognitive_load: data.cognitive_load,
+    load_level:     data.load_level,
+    confidence:     data.confidence,
+    factors:        data.factors,
+    recommendation: data.recommendation
   };
 }
 
