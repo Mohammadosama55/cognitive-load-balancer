@@ -1,84 +1,80 @@
 # Cognitive Load Balancer for Developers
 
-An AI-powered system that monitors and optimizes developer cognitive load through real-time telemetry analysis, eye-gaze tracking, and intelligent task scheduling.
+An AI-powered monitoring and optimization system designed to manage developer fatigue and cognitive load. Uses real-time telemetry (IDE interactions, typing patterns) and computer vision (eye-gaze tracking via MediaPipe) to predict cognitive states and suggest optimal task-switching moments.
 
-## Features
+## Architecture
 
-- **Real-time Cognitive Load Monitoring**: Analyzes eye gaze patterns, typing rhythm, and commit frequency
-- **Cognitive Weather Forecast**: Dashboard showing predicted fatigue windows
-- **Intelligent Task Scheduling**: Suggests optimal task switching moments
-- **Context Preservation AI**: Generates "mental checkpoints" when switching tasks
-  - Summarizes current mental model
-  - Captures IDE state and open tabs
-  - Creates 30-second memory bridge video for task re-entry
-  - Reduces context-switch cognitive cost by ~40%
-- **Privacy-First Vision**: On-device processing for all biometric data
+Multi-service monorepo:
+
+- **`frontend/`** - React 18 + Vite dashboard (port 5000)
+- **`backend/`** - Node.js/Express API (port 3001)
+- **`flask-microservice/`** - Python Flask ML service (port 5001)
+- **`ml-models/`** - Core ML logic, checkpoints, and generators
 
 ## Tech Stack
 
-- **Frontend**: React, Redux (MERN)
-- **Backend**: Node.js, Express, MongoDB (MERN)
-- **Microservice**: Flask + Computer Vision
-- **ML Models**: TensorFlow, scikit-learn for cognitive load prediction
-- **Vision**: OpenCV, MediaPipe for eye gaze tracking
-- **NLP**: transformers, spaCy for mental checkpoint generation
+- **Frontend**: React 18, Redux Toolkit, Tailwind CSS, Chart.js, Socket.IO client, Vite
+- **Backend**: Node.js/Express, Mongoose, Socket.IO, Winston logging, JWT auth
+- **ML Service**: Python Flask, OpenCV, MediaPipe, Scikit-learn/TensorFlow
+- **Database**: MongoDB (optional - app starts in offline mode if unavailable)
 
-## Project Structure
+## Development Setup
 
-```
-cognitive-load-balancer/
-├── flask-microservice/    # Python Flask microservice for telemetry analysis
-├── backend/              # Node.js/Express API server
-├── frontend/             # React dashboard application
-├── ml-models/            # Machine learning models
-│   ├── cognitive_load/   # Cognitive load prediction models
-│   ├── nlp_models/       # NLP for memory bridges
-│   └── cv_models/        # Computer vision for eye-gaze
-├── shared/               # Shared utilities and types
-└── docs/                 # Documentation
-```
+### Workflows
+- **Start application** - Frontend dev server (`cd frontend && npm run dev`) on port 5000
+- **Backend API** - Node.js backend (`cd backend && node src/server.js`) on port 3001
 
-## Quick Start
+### Environment Variables (backend/.env)
+- `NODE_ENV=development`
+- `PORT=3001`
+- `MONGO_URI=mongodb://localhost:27017/cognitive-load`
+- `JWT_SECRET=dev-secret-key-cognitive-load-balancer`
+- `FLASK_SERVICE_URL=http://localhost:5001`
+- `FRONTEND_URL=http://localhost:5000`
 
-### Prerequisites
-- Node.js 16+
-- Python 3.9+
-- MongoDB
-- Docker & Docker Compose (optional)
+### Key Notes
+- MongoDB is optional - backend starts in offline mode if MongoDB is unavailable
+- Frontend proxies `/api` requests to backend at port 3001
+- Backend binds to `0.0.0.0` (required for Replit networking)
+- Frontend configured with `allowedHosts: true` and `host: '0.0.0.0'` for Replit proxy
 
-### Installation
+## VS Code Extension
 
+Located in `vscode-extension/`. Tracks developer behavior inside VS Code and shows real-time cognitive load in the status bar.
+
+### Install the extension
 ```bash
-# Install dependencies for all services
-npm install                    # Root workspace
-cd backend && npm install
-cd ../frontend && npm install
-cd ../flask-microservice && pip install -r requirements.txt
+cd vscode-extension
+npm install
+npm run package
+code --install-extension cognitive-load-balancer-1.0.0.vsix
 ```
 
-### Running Services
+### What it tracks (behavior only, no code content)
+- Typing speed and rhythm (keystrokes per minute)
+- Pause duration between typing bursts
+- Keystroke variance (sign of hesitation/confusion)
+- File/tab switching frequency
+- Window focus changes
 
-```bash
-# Development environment with docker-compose
-docker-compose up
+### Status bar display
+- `● 32% Low` — in flow, great for deep work
+- `⚠ 58% Moderate` — decent focus
+- `✖ 81% High` — switch to lighter tasks
 
-# Or run individually
-cd backend && npm run dev
-cd frontend && npm run dev
-cd flask-microservice && python app.py
-```
+### Extension settings
+- `cognitiveLB.serverUrl` — backend URL (default: `http://localhost:3001`)
+- `cognitiveLB.dashboardUrl` — dashboard URL (default: `http://localhost:5000`)
+- `cognitiveLB.telemetryInterval` — seconds between readings (default: 30)
+- `cognitiveLB.showNotifications` — popup alerts when load is high (default: true)
+- `cognitiveLB.autoTrack` — start tracking on VS Code open (default: true)
 
-## API Documentation
+## API Endpoints
 
-See `docs/` folder for detailed API specifications and integration guides.
-
-## Privacy & Security
-
-- All eye-gaze and facial analysis happens on-device
-- No webcam data is transmitted to servers
-- Telemetry data is encrypted and anonymized
-- Users maintain full control over data collection
-
-## Development
-
-See [DEVELOPMENT.md](./docs/DEVELOPMENT.md) for detailed development setup and contribution guidelines.
+- `GET /api/health` - Health check
+- `POST /api/auth/register` - User registration
+- `POST /api/auth/login` - User login
+- `GET/POST /api/users` - User management
+- `POST /api/telemetry` - Telemetry data ingestion
+- `GET /api/cognitive-load` - Cognitive load data
+- `GET /api/context-preservation` - Mental checkpoint data
